@@ -1,0 +1,6 @@
+Flask
+pymongo
+werkzeug
+requests
+dnspython
+gunicorn
