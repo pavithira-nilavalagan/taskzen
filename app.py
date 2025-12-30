@@ -7,18 +7,39 @@ from werkzeug.utils import secure_filename
 import os
 import requests
 
+from dotenv import load_dotenv
 
+load_dotenv()  # loads variables from .env into environment
 
 app = Flask(__name__)
 app.secret_key = "taskzen_secret"
 
-client = MongoClient("mongodb+srv://nilavalaganpavithira_db_user:5Sao4koUiNDsRtVM@cluster0.0kkl5tg.mongodb.net/taskzen?retryWrites=true&w=majority")
-db = client.taskzen
+
+
+# MongoDB Atlas
+MONGO_URI = os.getenv("MONGO_URI_ATLAS")
+if not MONGO_URI:
+    raise RuntimeError("MONGO_URI_ATLAS not found")
+
+client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000, authSource="admin")
+
+# Test connection
+try:
+    client.admin.command("ping")
+    print("MongoDB Atlas connected ✅")
+except Exception as e:
+    print("MongoDB connection failed ❌")
+    print(e)
+
+# 🔥 IMPORTANT: Explicit DB selection
+db = client["taskzen"]
+
+# Collections
 users = db.users
 tasks = db.tasks
 profiles = db.profiles
-tasks_collection = db.tasks
 chat_history = db.chat_history
+tasks_collection = db.tasks_collection
 
 
 UPLOAD_FOLDER = "static/uploads"
@@ -474,5 +495,4 @@ def logout():
     return redirect("/")
 
 if __name__ == "__main__":
-
-    app.run(debug=True)
+    app.run(host="0.0.0.0",debug=True)
