@@ -12,7 +12,7 @@ import requests
 app = Flask(__name__)
 app.secret_key = "taskzen_secret"
 
-client = MongoClient("mongodb://localhost:27017/")
+client = MongoClient("mongodb+srv://nilavalaganpavithira_db_user:5Sao4koUiNDsRtVM@cluster0.0kkl5tg.mongodb.net/taskzen?retryWrites=true&w=majority")
 db = client.taskzen
 users = db.users
 tasks = db.tasks
@@ -474,4 +474,5 @@ def logout():
     return redirect("/")
 
 if __name__ == "__main__":
+
     app.run(debug=True)
