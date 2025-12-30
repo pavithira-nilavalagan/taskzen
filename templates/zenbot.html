@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ZenBot | TaskZen</title>
+  <link rel="icon" type="image/x-icon" href="../static/image/taskzen_logo.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+<!-- ================= MOBILE TOP NAVBAR ================= -->
+<header class="md:hidden flex items-center justify-between bg-indigo-600 text-white px-4 py-3">
+  <h1 class="text-lg font-bold">TaskZen</h1>
+  <button onclick="toggleSidebar()" class="text-2xl">☰</button>
+</header>
+
+<!-- ================= SIDEBAR ================= -->
+<aside id="sidebar"
+  class="fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-indigo-600 to-purple-600
+         text-white p-6 transform -translate-x-full md:translate-x-0
+         transition-transform duration-300 z-50">
+
+  <h2 class="text-2xl font-bold mb-8 text-center hidden md:block">TaskZen</h2>
+
+  <nav class="flex flex-col gap-2">
+    <a href="/dashboard" class="px-4 py-2 rounded-lg hover:bg-white/20">Dashboard</a>
+    <a href="/profile" class="px-4 py-2 rounded-lg hover:bg-white/20">Profile</a>
+    <a href="/add-task" class="px-4 py-2 rounded-lg hover:bg-white/20">Add Task</a>
+    <a href="/tasks" class="px-4 py-2 rounded-lg hover:bg-white/20">All Tasks</a>
+    <a href="/completed" class="px-4 py-2 rounded-lg hover:bg-white/20">Completed</a>
+    <a href="/pending" class="px-4 py-2 rounded-lg hover:bg-white/20">Pending</a>
+    <a href="/priority" class="px-4 py-2 rounded-lg hover:bg-white/20">Priority</a>
+    <a href="/zenbot" class="px-4 py-2 rounded-lg bg-white/20">ZenBot</a>
+    <a href="/calendar" class="px-4 py-2 rounded-lg hover:bg-white/20">Calendar</a>
+    <a href="/settings" class="px-4 py-2 rounded-lg hover:bg-white/20">Settings</a>
+
+    <a href="/logout"
+       class="mt-6 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-center">
+      Logout
+    </a>
+  </nav>
+</aside>
+
+<!-- Overlay -->
+<div id="overlay"
+     onclick="toggleSidebar()"
+     class="fixed inset-0 bg-black/40 hidden z-40 md:hidden"></div>
+
+<!-- ================= MAIN CONTENT ================= -->
+<main class="md:ml-64 min-h-screen p-4 flex flex-col">
+
+  
+
+  <!-- ===== PAGE TITLE ===== -->
+  <div class="mb-6">
+    <h2 class="text-2xl font-bold">ZenBot 🤖</h2>
+    <p class="text-gray-500 text-sm">
+      Chat with ZenBot or add tasks directly from here
+    </p>
+  </div>
+
+  <!-- ===== CHAT BOX ===== -->
+  <div id="chat" class="flex-1 overflow-y-auto p-4 bg-white rounded-xl shadow mb-4 space-y-4 flex flex-col">
+    {% for msg in history %}
+      <div class="flex justify-end">
+        <div class="max-w-xs md:max-w-md bg-indigo-600 text-white px-4 py-2 rounded-2xl rounded-br-none break-words">
+          {{ msg.message }}
+        </div>
+      </div>
+      <div class="flex justify-start">
+        <div class="max-w-xs md:max-w-md bg-gray-200 text-gray-800 px-4 py-2 rounded-2xl rounded-bl-none break-words">
+          {{ msg.reply }}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- ===== INPUT ===== -->
+  <div class="flex gap-2">
+    <input id="message" type="text"
+           placeholder="Type a message or add a task..."
+           class="flex-1 border rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    <button id="send"
+            class="bg-indigo-600 text-white px-5 py-2 rounded-full hover:bg-indigo-700">
+      Send
+    </button>
+  </div>
+
+</main>
+
+<!-- ================= JS ================= -->
+<script>
+  // Sidebar toggle
+  function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("-translate-x-full");
+    document.getElementById("overlay").classList.toggle("hidden");
+  }
+
+  // Profile dropdown
+  const profileBtn = document.getElementById("profileBtn");
+  const profileDropdown = document.getElementById("profileDropdown");
+
+  profileBtn.addEventListener("click", () => {
+    profileDropdown.classList.toggle("hidden");
+  });
+
+  window.addEventListener("click", function(e) {
+    if (!profileBtn.contains(e.target) && !profileDropdown.contains(e.target)) {
+      profileDropdown.classList.add("hidden");
+    }
+  });
+
+  // Chat functionality
+  const chat = document.getElementById("chat");
+  const messageInput = document.getElementById("message");
+  const sendButton = document.getElementById("send");
+
+  function appendMessage(userMsg, botReply) {
+    const userDiv = document.createElement("div");
+    userDiv.className = "flex justify-end";
+    userDiv.innerHTML = `<div class="max-w-xs md:max-w-md bg-indigo-600 text-white px-4 py-2 rounded-2xl rounded-br-none break-words">${userMsg}</div>`;
+    chat.appendChild(userDiv);
+
+    const botDiv = document.createElement("div");
+    botDiv.className = "flex justify-start";
+    botDiv.innerHTML = `<div class="max-w-xs md:max-w-md bg-gray-200 text-gray-800 px-4 py-2 rounded-2xl rounded-bl-none break-words">${botReply}</div>`;
+    chat.appendChild(botDiv);
+
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  sendButton.addEventListener("click", async () => {
+    const message = messageInput.value.trim();
+    if (!message) return;
+
+    const response = await fetch("/zenbot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message })
+    });
+    const data = await response.json();
+    const reply = data.reply || data.error || "⚠️ Unknown error";
+
+    appendMessage(message, reply);
+    messageInput.value = "";
+  });
+
+  messageInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendButton.click();
+  });
+</script>
+
+</body>
+</html>

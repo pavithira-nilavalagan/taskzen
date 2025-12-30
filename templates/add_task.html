@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Task | TaskZen</title>
+  <link rel="icon" type="image/x-icon" href="../static/image/taskzen_logo.png">
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<!-- ================= MOBILE TOP BAR ================= -->
+<div class="md:hidden flex items-center justify-between bg-indigo-600 text-white p-4">
+  <h1 class="text-xl font-bold">TaskZen</h1>
+  <button onclick="toggleSidebar()" class="text-2xl">☰</button>
+</div>
+
+<!-- ================= SIDEBAR (UNCHANGED) ================= -->
+<div id="sidebar"
+     class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-indigo-600 to-purple-600
+            text-white p-6 transform -translate-x-full md:translate-x-0
+            transition-transform duration-300 ease-in-out z-50">
+
+  <h1 class="text-2xl font-bold mb-6 text-center hidden md:block">TaskZen</h1>
+
+  <nav class="flex flex-col gap-3">
+    <a href="/dashboard" class="hover:bg-white/20 px-4 py-2 rounded-lg">Dashboard</a>
+    <a href="/profile" class="hover:bg-white/20 px-4 py-2 rounded-lg">Profile</a>
+    <a href="/add-task" class="bg-white/20 px-4 py-2 rounded-lg">Add Task</a>
+    <a href="/tasks" class="hover:bg-white/20 px-4 py-2 rounded-lg">All Tasks</a>
+    <a href="/completed" class="hover:bg-white/20 px-4 py-2 rounded-lg">Completed</a>
+    <a href="/pending" class="hover:bg-white/20 px-4 py-2 rounded-lg">Pending</a>
+    <a href="/priority" class="hover:bg-white/20 px-4 py-2 rounded-lg">Priority</a>
+    <a href="/zenbot" class="hover:bg-white/20 px-4 py-2 rounded-lg">Zen Bot</a>
+    <a href="/calendar" class="hover:bg-white/20 px-4 py-2 rounded-lg">Calender</a>
+    <a href="/settings" class="hover:bg-white/20 px-4 py-2 rounded-lg">Setting</a>
+
+    <a href="/logout"
+       class="mt-6 bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-center">
+      Logout
+    </a>
+  </nav>
+</div>
+
+<!-- ================= OVERLAY ================= -->
+<div id="overlay"
+     onclick="toggleSidebar()"
+     class="fixed inset-0 bg-black/40 hidden z-40 md:hidden">
+</div>
+
+<!-- ================= MAIN CONTENT ================= -->
+<div class="md:ml-64 min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100
+            flex justify-center items-start p-4 sm:p-6 lg:p-10">
+
+  <form method="post"
+        class="bg-white w-full max-w-2xl rounded-3xl shadow-xl
+               p-6 sm:p-8 lg:p-10 space-y-6">
+
+    <!-- Header -->
+    <div class="text-center">
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-800">
+        Add New Task
+      </h2>
+      <p class="text-gray-500 mt-2">
+        Create and organize your work efficiently
+      </p>
+    </div>
+
+    <!-- Task Title -->
+    <input name="title" placeholder="Task Title" required
+           class="input">
+
+    <!-- Description -->
+    <textarea name="description" placeholder="Task Description"
+              rows="4"
+              class="input resize-none"></textarea>
+
+    <!-- Priority + Due Date -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <select name="priority" class="input">
+        <option value="High">High Priority</option>
+        <option value="Medium">Medium Priority</option>
+        <option value="Low">Low Priority</option>
+      </select>
+
+      <input type="datetime-local" name="due_date" required
+             class="input">
+    </div>
+
+    <!-- Submit -->
+    <button
+      class="w-full bg-indigo-600 text-white py-3 rounded-full
+             font-semibold text-lg hover:bg-indigo-700
+             shadow-lg hover:shadow-xl transition">
+      Add Task
+    </button>
+
+  </form>
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+  function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("-translate-x-full");
+    document.getElementById("overlay").classList.toggle("hidden");
+  }
+</script>
+
+<!-- ================= INPUT STYLE ================= -->
+<style>
+  .input {
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    transition: all 0.2s ease;
+  }
+  .input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+  }
+</style>
+
+</body>
+</html>

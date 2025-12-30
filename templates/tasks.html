@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>All Tasks | TaskZen</title>
+  <link rel="icon" type="image/x-icon" href="../static/image/taskzen_logo.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+<!-- ================= MOBILE HEADER ================= -->
+<header class="md:hidden flex items-center justify-between bg-indigo-600 text-white px-4 py-3">
+  <h1 class="text-lg font-bold">TaskZen</h1>
+  <button onclick="toggleSidebar()" class="text-2xl">☰</button>
+</header>
+
+<!-- ================= SIDEBAR (UNCHANGED) ================= -->
+<aside id="sidebar"
+  class="fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-indigo-600 to-purple-600
+         text-white p-6 transform -translate-x-full md:translate-x-0
+         transition-transform duration-300 z-50">
+
+  <h2 class="text-2xl font-bold mb-8 text-center hidden md:block">TaskZen</h2>
+
+  <nav class="flex flex-col gap-2">
+    <a href="/dashboard" class="px-4 py-2 rounded-lg hover:bg-white/20">Dashboard</a>
+    <a href="/profile" class="px-4 py-2 rounded-lg hover:bg-white/20">Profile</a>
+    <a href="/add-task" class="px-4 py-2 rounded-lg hover:bg-white/20">Add Task</a>
+    <a href="/tasks" class="px-4 py-2 rounded-lg bg-white/20">All Tasks</a>
+    <a href="/completed" class="px-4 py-2 rounded-lg hover:bg-white/20">Completed</a>
+    <a href="/pending" class="px-4 py-2 rounded-lg hover:bg-white/20">Pending</a>
+    <a href="/priority" class="px-4 py-2 rounded-lg hover:bg-white/20">Priority</a>
+    <a href="/zenbot" class="px-4 py-2 rounded-lg hover:bg-white/20">Zen Bot</a>
+    <a href="/calendar" class="px-4 py-2 rounded-lg hover:bg-white/20">Calendar</a>
+    <a href="/settings" class="px-4 py-2 rounded-lg hover:bg-white/20">Settings</a>
+
+    <a href="/logout"
+       class="mt-6 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-center">
+      Logout
+    </a>
+  </nav>
+</aside>
+
+<!-- ================= OVERLAY ================= -->
+<div id="overlay"
+     onclick="toggleSidebar()"
+     class="fixed inset-0 bg-black/40 hidden z-40 md:hidden"></div>
+
+<!-- ================= MAIN ================= -->
+<main class="md:ml-64 min-h-screen p-4 sm:p-6 lg:p-8">
+
+  <!-- ===== PROFILE STRIP (NOW BELOW NAVBAR) ===== -->
+  <div class="flex justify-end mb-6 relative">
+    <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow">
+
+      {% if user and user.image_url %}
+        <img id="profileBtn" src="{{ user.image_url }}"
+             class="w-10 h-10 rounded-full object-cover border-2 border-indigo-600 cursor-pointer">
+      {% else %}
+        <div id="profileBtn"
+             class="w-10 h-10 rounded-full bg-gray-200 flex items-center
+                    justify-center text-gray-500 border-2 border-indigo-600 cursor-pointer">
+          ?
+        </div>
+      {% endif %}
+
+      <span class="font-semibold">
+        Hi, {{ user.username if user and user.username else user.name if user else 'User' }}
+      </span>
+
+      <!-- Dropdown -->
+      <div id="profileDropdown"
+           class="absolute right-0 top-14 w-36 bg-white shadow-lg
+                  rounded-lg overflow-hidden hidden">
+        <a href="/profile" class="block px-4 py-2 hover:bg-gray-100">Profile</a>
+        <a href="/logout" class="block px-4 py-2 hover:bg-gray-100 text-red-600">Logout</a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== SEARCH BAR (SMALL ON DESKTOP) ===== -->
+  <div class="flex justify-center mb-8">
+    <form method="get"
+          class="bg-white rounded-2xl shadow-lg p-4
+                 w-full max-w-3xl
+                 flex flex-col md:flex-row gap-4">
+
+<input type="text" name="search"
+       value="{{ request.args.get('search','') }}"
+       placeholder="Search tasks..."
+       class="input w-full md:w-40">
+
+
+      <select name="priority" class="input w-full md:w-40">
+        <option value="All">All Priority</option>
+        <option value="High" {{ 'selected' if request.args.get('priority')=='High' }}>High</option>
+        <option value="Medium" {{ 'selected' if request.args.get('priority')=='Medium' }}>Medium</option>
+        <option value="Low" {{ 'selected' if request.args.get('priority')=='Low' }}>Low</option>
+      </select>
+
+      <select name="status" class="input w-full md:w-40">
+        <option value="All">All Status</option>
+        <option value="Pending" {{ 'selected' if request.args.get('status')=='Pending' }}>Pending</option>
+        <option value="Completed" {{ 'selected' if request.args.get('status')=='Completed' }}>Completed</option>
+      </select>
+
+      <button
+        class="bg-indigo-600 text-white px-6 py-2 rounded-xl
+               hover:bg-indigo-700 transition">
+        Search
+      </button>
+    </form>
+  </div>
+
+  <!-- ===== TASK LIST ===== -->
+  <section class="space-y-6">
+
+    {% for t in tasks %}
+    <form method="post" action="/update-task/{{ t._id }}"
+          class="bg-white rounded-2xl shadow p-6 space-y-4">
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <input name="title" value="{{ t.title }}" class="input font-semibold">
+        <textarea name="description" rows="2" class="input resize-none">{{ t.description }}</textarea>
+
+        <select name="priority" class="input">
+          <option {{ 'selected' if t.priority=='High' }}>High</option>
+          <option {{ 'selected' if t.priority=='Medium' }}>Medium</option>
+          <option {{ 'selected' if t.priority=='Low' }}>Low</option>
+        </select>
+
+        <select name="status" class="input">
+          <option {{ 'selected' if t.status=='Pending' }}>Pending</option>
+          <option {{ 'selected' if t.status=='Completed' }}>Completed</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col md:flex-row md:justify-between text-sm text-gray-600 gap-3">
+        <div>
+          <strong>Due:</strong> {{ t.due_date }}
+          <span class="ml-3 text-xs text-gray-400">Created: {{ t.created }}</span>
+        </div>
+
+        <div class="flex gap-4">
+          <button class="text-indigo-600 hover:underline">Update</button>
+          <a href="/delete-task/{{ t._id }}" class="text-red-600 hover:underline">Delete</a>
+        </div>
+      </div>
+
+    </form>
+    {% endfor %}
+
+  </section>
+</main>
+
+<!-- ================= JS ================= -->
+<script>
+  function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("-translate-x-full");
+    document.getElementById("overlay").classList.toggle("hidden");
+  }
+
+  const profileBtn = document.getElementById("profileBtn");
+  const profileDropdown = document.getElementById("profileDropdown");
+
+  profileBtn.addEventListener("click", () => {
+    profileDropdown.classList.toggle("hidden");
+  });
+
+  window.addEventListener("click", (e) => {
+    if (!profileBtn.contains(e.target) && !profileDropdown.contains(e.target)) {
+      profileDropdown.classList.add("hidden");
+    }
+  });
+</script>
+
+<!-- ================= INPUT STYLE ================= -->
+<style>
+  .input {
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+  }
+  .input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99,102,241,.4);
+  }
+</style>
+
+</body>
+</html>

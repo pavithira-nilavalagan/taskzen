@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile | TaskZen</title>
+  <link rel="icon" type="image/x-icon" href="../static/image/taskzen_logo.png">
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<!-- ================= MOBILE TOP BAR ================= -->
+<div class="md:hidden flex items-center justify-between bg-indigo-600 text-white p-4">
+  <h1 class="text-xl font-bold">TaskZen</h1>
+  <button onclick="toggleSidebar()" class="text-2xl">☰</button>
+</div>
+
+<!-- ================= SIDEBAR (UNCHANGED) ================= -->
+<div id="sidebar"
+     class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-indigo-600 to-purple-600
+            text-white p-6 transform -translate-x-full md:translate-x-0
+            transition-transform duration-300 ease-in-out z-50">
+
+  <h1 class="text-2xl font-bold mb-6 text-center hidden md:block">TaskZen</h1>
+
+  <nav class="flex flex-col gap-3">
+    <a href="/dashboard" class="hover:bg-white/20 px-4 py-2 rounded-lg">Dashboard</a>
+    <a href="/profile" class="bg-white/20 px-4 py-2 rounded-lg">Profile</a>
+    <a href="/add-task" class="hover:bg-white/20 px-4 py-2 rounded-lg">Add Task</a>
+    <a href="/tasks" class="hover:bg-white/20 px-4 py-2 rounded-lg">All Tasks</a>
+    <a href="/completed" class="hover:bg-white/20 px-4 py-2 rounded-lg">Completed</a>
+    <a href="/pending" class="hover:bg-white/20 px-4 py-2 rounded-lg">Pending</a>
+    <a href="/priority" class="hover:bg-white/20 px-4 py-2 rounded-lg">Priority</a>
+    <a href="/zenbot" class="hover:bg-white/20 px-4 py-2 rounded-lg">Zen Bot</a>
+    <a href="/calendar" class="hover:bg-white/20 px-4 py-2 rounded-lg">Calender</a>
+    <a href="/settings" class="hover:bg-white/20 px-4 py-2 rounded-lg">Setting</a>
+
+    <a href="/logout"
+       class="mt-6 bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-center">
+      Logout
+    </a>
+  </nav>
+</div>
+
+<!-- ================= OVERLAY ================= -->
+<div id="overlay"
+     onclick="toggleSidebar()"
+     class="fixed inset-0 bg-black/40 hidden z-40 md:hidden">
+</div>
+
+<!-- ================= MAIN CONTENT ================= -->
+<div class="md:ml-64 min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100
+            flex justify-center items-start p-4 sm:p-6 lg:p-10">
+
+  <form method="post" enctype="multipart/form-data"
+        class="bg-white w-full max-w-4xl rounded-3xl shadow-xl
+               p-6 sm:p-8 lg:p-10 space-y-8">
+
+    <!-- Header -->
+    <div class="text-center">
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-800">
+        Profile Details
+      </h2>
+      <p class="text-gray-500 mt-2">
+        Update your personal information
+      </p>
+    </div>
+
+    <!-- Profile Image -->
+    <div class="flex flex-col items-center gap-4">
+      {% if profile.image_url %}
+        <img src="{{ profile.image_url }}"
+             class="w-32 h-32 sm:w-36 sm:h-36 rounded-full object-cover
+                    ring-4 ring-indigo-500 shadow-lg">
+      {% else %}
+        <div class="w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-indigo-100
+                    text-indigo-600 flex items-center justify-center
+                    font-semibold shadow-inner">
+          No Image
+        </div>
+      {% endif %}
+
+      <label class="cursor-pointer text-sm bg-indigo-600 text-white
+                    px-4 py-2 rounded-full hover:bg-indigo-700 transition">
+        Change Photo
+        <input type="file" name="image" accept="image/*" class="hidden">
+      </label>
+    </div>
+
+    <!-- Form Fields -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <input name="phone" placeholder="Phone"
+             value="{{ profile.phone if profile }}"
+             class="input">
+
+      <input type="date" name="dob"
+             value="{{ profile.dob if profile }}"
+             class="input">
+
+      <select name="gender" class="input">
+        <option value="">Select Gender</option>
+        <option value="Male" {% if profile.gender == 'Male' %}selected{% endif %}>Male</option>
+        <option value="Female" {% if profile.gender == 'Female' %}selected{% endif %}>Female</option>
+        <option value="Other" {% if profile.gender == 'Other' %}selected{% endif %}>Other</option>
+      </select>
+
+      <input name="city" placeholder="City"
+             value="{{ profile.city if profile }}"
+             class="input">
+
+      <input name="state" placeholder="State"
+             value="{{ profile.state if profile }}"
+             class="input">
+
+      <input name="country" placeholder="Country"
+             value="{{ profile.country if profile }}"
+             class="input">
+    </div>
+
+    <input name="address" placeholder="Address"
+           value="{{ profile.address if profile }}"
+           class="input w-full">
+
+    <textarea name="bio" rows="4" placeholder="Short Bio"
+              class="input w-full resize-none">{{ profile.bio if profile }}</textarea>
+
+    <!-- Buttons -->
+    <div class="flex flex-col sm:flex-row justify-end gap-4 pt-4">
+      <button type="reset"
+              class="px-6 py-2 rounded-full border border-gray-300
+                     hover:bg-gray-100 transition">
+        Reset
+      </button>
+
+      <button type="submit"
+              class="px-8 py-2 rounded-full bg-indigo-600 text-white
+                     font-semibold hover:bg-indigo-700
+                     shadow-lg hover:shadow-xl transition">
+        Save Changes
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+  function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("-translate-x-full");
+    document.getElementById("overlay").classList.toggle("hidden");
+  }
+</script>
+
+<!-- ================= INPUT STYLE ================= -->
+<style>
+  .input {
+    border: 1px solid #d1d5db;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    transition: all 0.2s ease;
+  }
+  .input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
+  }
+</style>
+
+</body>
+</html>

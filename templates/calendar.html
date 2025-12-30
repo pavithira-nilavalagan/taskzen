@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Calendar | TaskZen</title>
+  <link rel="icon" href="../static/image/taskzen_logo.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- TailwindCSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FullCalendar GLOBAL build -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+  <style>
+    #calendar { min-height: 600px; }
+
+    /* Rounded, shadowed events with hover effect */
+    .fc-event {
+      border-radius: 0.75rem !important;
+      font-weight: 500 !important;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .fc-event:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      cursor: pointer;
+    }
+
+    .fc-toolbar-title {
+      font-weight: 700 !important;
+      font-size: 1.5rem !important;
+    }
+
+    /* Calendar cells hover effect */
+    .fc-daygrid-day:hover {
+      background-color: #f0f4f8;
+      cursor: pointer;
+    }
+
+    /* Mobile adjustments */
+    @media (max-width: 768px) {
+      #calendar { min-height: 500px; }
+      .fc-toolbar-title { font-size: 1.2rem !important; }
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+<!-- ================= MOBILE TOP NAVBAR ================= -->
+<header class="md:hidden flex items-center justify-between bg-indigo-600 text-white px-4 py-3">
+  <h1 class="text-lg font-bold">TaskZen</h1>
+  <button onclick="toggleSidebar()" class="text-2xl">☰</button>
+</header>
+
+<!-- ================= SIDEBAR ================= -->
+<aside id="sidebar"
+       class="fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-indigo-600 to-purple-600
+              text-white p-6 transform -translate-x-full md:translate-x-0
+              transition-transform duration-300 z-50 overflow-y-auto">
+  <h2 class="text-2xl font-bold mb-8 text-center hidden md:block">TaskZen</h2>
+  <nav class="flex flex-col gap-2">
+    <a href="/dashboard" class="px-4 py-2 rounded-lg hover:bg-white/20">Dashboard</a>
+    <a href="/profile" class="px-4 py-2 rounded-lg hover:bg-white/20">Profile</a>
+    <a href="/add-task" class="px-4 py-2 rounded-lg hover:bg-white/20">Add Task</a>
+    <a href="/tasks" class="px-4 py-2 rounded-lg hover:bg-white/20">All Tasks</a>
+    <a href="/completed" class="px-4 py-2 rounded-lg hover:bg-white/20">Completed</a>
+    <a href="/pending" class="px-4 py-2 rounded-lg hover:bg-white/20">Pending</a>
+    <a href="/priority" class="px-4 py-2 rounded-lg hover:bg-white/20">Priority</a>
+    <a href="/zenbot" class="px-4 py-2 rounded-lg hover:bg-white/20">ZenBot</a>
+    <a href="/calendar" class="px-4 py-2 rounded-lg bg-white/20">Calendar</a>
+    <a href="/settings" class="px-4 py-2 rounded-lg hover:bg-white/20">Settings</a>
+    <a href="/logout" class="mt-6 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-center">Logout</a>
+  </nav>
+</aside>
+
+<!-- Overlay -->
+<div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 hidden z-40 md:hidden"></div>
+
+<!-- ================= MAIN CONTENT ================= -->
+<main class="md:ml-64 min-h-screen p-4 md:p-6 flex flex-col">
+
+  <!-- ===== PROFILE STRIP ===== -->
+  <div class="flex justify-end mb-6 relative">
+    <div class="flex items-center gap-3 bg-white px-4 py-2 rounded-xl shadow">
+      {% if user and user.image_url %}
+        <img id="profileBtn" src="{{ user.image_url }}"
+             class="w-10 h-10 rounded-full object-cover border-2 border-indigo-600 cursor-pointer">
+      {% else %}
+        <div id="profileBtn"
+             class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center
+                    text-gray-500 border-2 border-indigo-600 cursor-pointer">?</div>
+      {% endif %}
+      <span class="font-semibold">
+        Hi, {{ user.username if user and user.username else user.name if user else 'User' }}
+      </span>
+
+      <!-- Dropdown -->
+      <div id="profileDropdown"
+           class="absolute right-0 top-14 w-36 bg-white shadow-lg rounded-lg overflow-hidden hidden">
+        <a href="/profile" class="block px-4 py-2 hover:bg-gray-100">Profile</a>
+        <a href="/logout" class="block px-4 py-2 hover:bg-gray-100 text-red-600">Logout</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE TITLE ===== -->
+  <div class="mb-4 md:mb-6">
+    <h2 class="text-2xl font-bold">📅 Task Calendar</h2>
+    <p class="text-gray-500 text-sm">Tasks are visually prioritized with gradients</p>
+  </div>
+
+  <!-- ===== CALENDAR CARD ===== -->
+  <div class="bg-white p-4 md:p-6 rounded-xl shadow-lg border-t-4 border-indigo-600">
+    <div id="calendar" class="w-full"></div>
+  </div>
+
+</main>
+
+<!-- MODAL -->
+<div id="taskModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+  <div class="bg-white p-6 rounded-xl w-full max-w-md">
+    <h3 class="text-xl font-bold mb-4">📝 Task Options</h3>
+    <input type="hidden" id="taskId">
+    <div class="flex flex-col md:flex-row justify-end gap-3">
+      <button onclick="completeTask()"
+              class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition">
+        Complete
+      </button>
+      <button onclick="deleteTask()"
+              class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">
+        Delete
+      </button>
+      <button onclick="closeModal()"
+              class="border px-4 py-2 rounded hover:bg-gray-100 transition">
+        Cancel
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+  // Sidebar toggle
+  function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("-translate-x-full");
+    document.getElementById("overlay").classList.toggle("hidden");
+  }
+
+  // Profile dropdown
+  const profileBtn = document.getElementById("profileBtn");
+  const profileDropdown = document.getElementById("profileDropdown");
+  profileBtn.addEventListener("click", () => profileDropdown.classList.toggle("hidden"));
+  window.addEventListener("click", e => {
+    if (!profileBtn.contains(e.target) && !profileDropdown.contains(e.target)) {
+      profileDropdown.classList.add("hidden");
+    }
+  });
+
+  // FullCalendar init
+  document.addEventListener("DOMContentLoaded", function () {
+    const events = {{ events | tojson | safe }};
+    const coloredEvents = events.map(e => {
+      if (e.priority === 'High') e.backgroundColor = 'linear-gradient(135deg,#f87171,#ef4444)';
+      else if (e.priority === 'Medium') e.backgroundColor = 'linear-gradient(135deg,#fde68a,#facc15)';
+      else if (e.priority === 'Low') e.backgroundColor = 'linear-gradient(135deg,#34d399,#22c55e)';
+      e.borderColor = e.backgroundColor;
+      e.textColor = '#ffffff';
+      return e;
+    });
+
+    var calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
+      initialView: "dayGridMonth",
+      height: "auto",
+      contentHeight: "auto",
+      aspectRatio: 1.5,
+      headerToolbar: {
+        left: "prev,next today",
+        center: "title",
+        right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek"
+      },
+      events: coloredEvents,
+      eventDidMount: function(info) {
+        info.el.style.background = info.event.backgroundColor;
+        info.el.style.color = info.event.textColor;
+      },
+      eventClick: function(info) {
+        document.getElementById("taskId").value = info.event.id;
+        document.getElementById("taskModal").classList.remove("hidden");
+        document.getElementById("taskModal").classList.add("flex");
+      },
+      dayMaxEvents: true,
+      windowResize: function() {
+        calendar.setOption('aspectRatio', window.innerWidth < 768 ? 0.75 : 1.5);
+      }
+    });
+
+    calendar.render();
+  });
+
+  function closeModal() { document.getElementById("taskModal").classList.add("hidden"); }
+  function completeTask() {
+    const id = document.getElementById("taskId").value;
+    fetch("/complete-task/" + id).then(() => location.reload());
+  }
+  function deleteTask() {
+    const id = document.getElementById("taskId").value;
+    if (confirm("Delete this task?")) { fetch("/delete-task/" + id).then(() => location.reload()); }
+  }
+</script>
+
+</body>
+</html>

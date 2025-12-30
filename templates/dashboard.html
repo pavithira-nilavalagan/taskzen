@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskZen</title>
+  <link rel="icon" type="image/x-icon" href="../static/image/taskzen_logo.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+<!-- Top Bar (Mobile) -->
+<div class="md:hidden flex items-center justify-between bg-indigo-600 text-white p-4">
+  <h1 class="text-xl font-bold">TaskZen</h1>
+  <button onclick="toggleSidebar()" class="text-2xl">☰</button>
+</div>
+
+<!-- Sidebar -->
+<div id="sidebar"
+     class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-indigo-600 to-purple-600
+            text-white p-6 transform -translate-x-full md:translate-x-0
+            transition-transform duration-300 ease-in-out z-50">
+
+  <h1 class="text-2xl font-bold mb-6 text-center hidden md:block">TaskZen</h1>
+
+  <nav class="flex flex-col gap-3">
+    <a href="/dashboard" class="bg-white/20 px-4 py-2 rounded-lg">Dashboard</a>
+    <a href="/profile" class="hover:bg-white/20 px-4 py-2 rounded-lg">Profile</a>
+    <a href="/add-task" class="hover:bg-white/20 px-4 py-2 rounded-lg">Add Task</a>
+    <a href="/tasks" class="hover:bg-white/20 px-4 py-2 rounded-lg">All Tasks</a>
+    <a href="/completed" class="hover:bg-white/20 px-4 py-2 rounded-lg">Completed</a>
+    <a href="/pending" class="hover:bg-white/20 px-4 py-2 rounded-lg">Pending</a>
+    <a href="/priority" class="hover:bg-white/20 px-4 py-2 rounded-lg">Priority</a>
+    <a href="/zenbot" class="hover:bg-white/20 px-4 py-2 rounded-lg">Zen Bot</a>
+    <a href="/calendar" class="hover:bg-white/20 px-4 py-2 rounded-lg">Calender</a>
+    <a href="/settings" class="hover:bg-white/20 px-4 py-2 rounded-lg">Setting</a>
+    <a href="/logout" class="mt-6 bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-center">
+      Logout
+    </a>
+  </nav>
+</div>
+
+<!-- Overlay (Mobile) -->
+<div id="overlay"
+     onclick="toggleSidebar()"
+     class="fixed inset-0 bg-black/40 hidden z-40 md:hidden">
+</div>
+
+<!-- Main Content -->
+<div class="md:ml-64 p-8 space-y-8">
+
+  <!-- Welcome Card -->
+  <div class="bg-white p-8 rounded-2xl shadow">
+    <h2 class="text-3xl font-bold text-gray-800 mb-2">
+      Welcome to TaskZen Dashboard 👋
+    </h2>
+    <p class="text-gray-600">
+      Stay organized, track progress, and complete your tasks on time.
+    </p>
+  </div>
+
+  <!-- Stats Section -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+
+    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+      <h3 class="text-sm text-gray-500">Total Tasks</h3>
+      <p class="text-3xl font-bold text-indigo-600 mt-2">{{ total_tasks }}</p>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+      <h3 class="text-sm text-gray-500">Completed</h3>
+      <p class="text-3xl font-bold text-green-600 mt-2">{{ completed_tasks }}</p>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+      <h3 class="text-sm text-gray-500">Pending</h3>
+      <p class="text-3xl font-bold text-yellow-500 mt-2">{{ pending_tasks }}</p>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+      <h3 class="text-sm text-gray-500">High Priority</h3>
+      <p class="text-3xl font-bold text-red-500 mt-2">{{ high_priority_tasks }}</p>
+    </div>
+
+  </div>
+
+  <!-- Progress Section -->
+  <div class="bg-white p-6 rounded-xl shadow">
+    <h3 class="text-xl font-semibold text-gray-800 mb-4">Task Completion Progress</h3>
+
+    <div class="w-full bg-gray-200 rounded-full h-4">
+      <div class="bg-indigo-600 h-4 rounded-full" style="width: {{ completion_percentage }}%"></div>
+    </div>
+
+    <p class="text-sm text-gray-500 mt-2">{{ completion_percentage }}% of tasks completed</p>
+  </div>
+
+  <!-- Recent Tasks -->
+  <div class="bg-white p-6 rounded-xl shadow">
+    <h3 class="text-xl font-semibold text-gray-800 mb-4">Recent Tasks</h3>
+
+    <ul class="divide-y">
+      {% for task in recent_tasks %}
+      <li class="py-3 flex justify-between items-center">
+        <span class="text-gray-700">{{ task.title }}</span>
+        <span class="text-sm 
+                     {% if task.status == 'Completed' %}text-green-600
+                     {% elif task.status == 'Pending' %}text-yellow-500
+                     {% elif task.status == 'High Priority' %}text-red-500
+                     {% else %}text-gray-500{% endif %} 
+                     font-medium">
+          {{ task.status }}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+</div>
+
+<!-- JS -->
+<script>
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+
+    sidebar.classList.toggle('-translate-x-full');
+    overlay.classList.toggle('hidden');
+  }
+</script>
+
+</body>
+</html>

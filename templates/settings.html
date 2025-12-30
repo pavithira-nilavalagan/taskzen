@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings | TaskZen</title>
+  <link rel="icon" type="image/x-icon" href="../static/image/taskzen_logo.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+<!-- ================= MOBILE TOP NAVBAR ================= -->
+<header class="md:hidden flex items-center justify-between bg-indigo-600 text-white px-4 py-3 shadow-md">
+  <h1 class="text-xl font-bold">TaskZen</h1>
+  <button onclick="toggleSidebar()" class="text-2xl">☰</button>
+</header>
+
+<!-- ================= SIDEBAR ================= -->
+<aside id="sidebar"
+       class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-indigo-600 to-purple-600
+              text-white p-6 transform -translate-x-full md:translate-x-0
+              transition-transform duration-300 z-50 overflow-y-auto shadow-lg">
+  <h1 class="text-2xl font-bold mb-6 text-center hidden md:block">TaskZen</h1>
+
+  <nav class="flex flex-col gap-3">
+    <a href="/dashboard" class="px-4 py-2 rounded-lg hover:bg-white/20">Dashboard</a>
+    <a href="/profile" class="px-4 py-2 rounded-lg hover:bg-white/20">Profile</a>
+    <a href="/add-task" class="px-4 py-2 rounded-lg hover:bg-white/20">Add Task</a>
+    <a href="/tasks" class="px-4 py-2 rounded-lg hover:bg-white/20">All Tasks</a>
+    <a href="/completed" class="px-4 py-2 rounded-lg hover:bg-white/20">Completed</a>
+    <a href="/pending" class="px-4 py-2 rounded-lg hover:bg-white/20">Pending</a>
+    <a href="/priority" class="px-4 py-2 rounded-lg hover:bg-white/20">Priority</a>
+    <a href="/zenbot" class="px-4 py-2 rounded-lg hover:bg-white/20">Zen Bot</a>
+    <a href="/calendar" class="px-4 py-2 rounded-lg hover:bg-white/20">Calendar</a>
+    <a href="/settings" class="px-4 py-2 rounded-lg bg-white/20">Settings</a>
+    <a href="/logout" class="mt-6 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-center">Logout</a>
+  </nav>
+</aside>
+
+<!-- Overlay -->
+<div id="overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/40 hidden z-40 md:hidden"></div>
+
+<!-- ================= MAIN CONTENT ================= -->
+<main class="md:ml-64 p-4 md:p-8 flex justify-center min-h-screen">
+
+  <form method="POST"
+        class="bg-white w-full max-w-3xl p-8 rounded-2xl shadow-xl space-y-8">
+
+    <h2 class="text-3xl font-bold text-gray-800 text-center">
+      ⚙️ Account Settings
+    </h2>
+
+    {% if error %}
+    <div class="bg-red-100 text-red-700 p-3 rounded">
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- ACCOUNT INFO -->
+    <div>
+      <h3 class="text-xl font-semibold mb-4">👤 Account Information</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="text" name="name" value="{{ user.name }}"
+               placeholder="Full Name"
+               class="border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+
+        <input type="email" name="email" value="{{ user.email }}"
+               placeholder="Email"
+               class="border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500" required>
+      </div>
+    </div>
+
+    <!-- PASSWORD -->
+    <div>
+      <h3 class="text-xl font-semibold mb-4">🔐 Change Password</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input type="password" name="current_password"
+               placeholder="Current Password"
+               class="border p-3 rounded-lg">
+
+        <input type="password" name="new_password"
+               placeholder="New Password"
+               class="border p-3 rounded-lg">
+
+        <input type="password" name="confirm_password"
+               placeholder="Confirm Password"
+               class="border p-3 rounded-lg">
+      </div>
+    </div>
+
+    <!-- PREFERENCES -->
+    <div>
+      <h3 class="text-xl font-semibold mb-4">⚡ Preferences</h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <select name="theme" class="border p-3 rounded-lg">
+          <option value="light" {{ "selected" if user.get("settings", {}).get("theme") == "light" }}>Light Theme</option>
+          <option value="dark" {{ "selected" if user.get("settings", {}).get("theme") == "dark" }}>Dark Theme</option>
+        </select>
+
+        <select name="default_priority" class="border p-3 rounded-lg">
+          <option value="Low" {{ "selected" if user.get("settings", {}).get("default_priority") == "Low" }}>Low Priority</option>
+          <option value="Medium" {{ "selected" if user.get("settings", {}).get("default_priority") == "Medium" }}>Medium Priority</option>
+          <option value="High" {{ "selected" if user.get("settings", {}).get("default_priority") == "High" }}>High Priority</option>
+        </select>
+
+        <label class="flex items-center gap-3">
+          <input type="checkbox" name="email_notifications"
+            {% if user.get("settings", {}).get("email_notifications") %}checked{% endif %}>
+          Email Notifications
+        </label>
+
+        <label class="flex items-center gap-3">
+          <input type="checkbox" name="task_reminders"
+            {% if user.get("settings", {}).get("task_reminders") %}checked{% endif %}>
+          Task Reminders
+        </label>
+
+        <input type="text" name="timezone"
+               value="{{ user.get('settings', {}).get('timezone', 'Asia/Kolkata') }}"
+               placeholder="Timezone"
+               class="border p-3 rounded-lg">
+      </div>
+    </div>
+
+    <!-- BUTTONS -->
+    <div class="flex flex-col md:flex-row justify-end gap-4">
+      <button type="reset" class="px-6 py-2 border rounded-lg hover:bg-gray-100 transition">Reset</button>
+      <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Save Changes</button>
+    </div>
+
+  </form>
+</main>
+
+<script>
+  function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("-translate-x-full");
+    document.getElementById("overlay").classList.toggle("hidden");
+  }
+</script>
+
+</body>
+</html>
