@@ -37,9 +37,8 @@ db = client["taskzen"]
 # Collections
 users = db.users
 tasks = db.tasks
-profiles = db.profiles
 chat_history = db.chat_history
-tasks_collection = db.tasks_collection
+
 
 
 UPLOAD_FOLDER = "static/uploads"
@@ -147,26 +146,33 @@ def dashboard():
 
     user_email = session["user"]
 
-    # Fetch only tasks for the logged-in user
-    all_tasks = list(tasks_collection.find({"user": user_email}))
-    
+    # ✅ FIXED: use tasks collection
+    all_tasks = list(tasks.find({"user": user_email}))
+
     total_tasks = len(all_tasks)
-    completed_tasks = len([t for t in all_tasks if t['status'] == 'Completed'])
-    pending_tasks = len([t for t in all_tasks if t['status'] == 'Pending'])
-    high_priority_tasks = len([t for t in all_tasks if t['priority'] == 'High'])
-    
+    completed_tasks = len([t for t in all_tasks if t["status"] == "Completed"])
+    pending_tasks = len([t for t in all_tasks if t["status"] == "Pending"])
+    high_priority_tasks = len([t for t in all_tasks if t["priority"] == "High"])
+
     completion_percentage = int((completed_tasks / total_tasks) * 100) if total_tasks else 0
 
-    # Fetch 5 most recent tasks
-    recent_tasks = list(tasks_collection.find({"user": user_email}).sort("created", -1).limit(5))
+    # ✅ FIXED: recent tasks
+    recent_tasks = list(
+        tasks.find({"user": user_email})
+        .sort("created", -1)
+        .limit(5)
+    )
 
-    return render_template("dashboard.html",
-                           total_tasks=total_tasks,
-                           completed_tasks=completed_tasks,
-                           pending_tasks=pending_tasks,
-                           high_priority_tasks=high_priority_tasks,
-                           completion_percentage=completion_percentage,
-                           recent_tasks=recent_tasks)
+    return render_template(
+        "dashboard.html",
+        total_tasks=total_tasks,
+        completed_tasks=completed_tasks,
+        pending_tasks=pending_tasks,
+        high_priority_tasks=high_priority_tasks,
+        completion_percentage=completion_percentage,
+        recent_tasks=recent_tasks
+    )
+
 
 
 
@@ -562,5 +568,6 @@ def logout():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
+
 
 
