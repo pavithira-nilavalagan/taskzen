@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 import os
 import requests
 import json
+import re
 
 from dotenv import load_dotenv
 
@@ -471,7 +472,9 @@ def complete_task(id):
     )
     return ("", 204)
 
-# Gemini API key
+
+
+# ---------------- GEMINI API ----------------
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 def call_gemini_api(message):
@@ -507,34 +510,34 @@ User message: "{message}"
         print("Gemini API error:", e)
         return '{"intent": "unknown"}'
 
-# ---------------- ZenBot Route ----------------
+def extract_json(text):
+    """Extract JSON from Gemini output safely."""
+    try:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if match:
+            return json.loads(match.group())
+    except Exception as e:
+        print("JSON extraction error:", e)
+    return {"intent": "unknown"}
+
+# ---------------- ZENBOT ----------------
 @app.route("/zenbot", methods=["GET", "POST"])
 def zenbot():
     if "user" not in session:
         return redirect("/login")
-
     user_email = session["user"]
     user = users.find_one({"email": user_email})
-
     if request.method == "POST":
         try:
             data = request.get_json()
             message = data.get("message", "").strip()
             if not message:
                 return jsonify({"reply": "⚠️ Message cannot be empty"})
-
-            # Call Gemini API
             ai_raw = call_gemini_api(message)
-
-            try:
-                ai = json.loads(ai_raw)
-            except Exception:
-                ai = {"intent": "unknown"}
-
+            ai = extract_json(ai_raw)
             intent = ai.get("intent", "unknown")
             reply = "🤖 I can help with tasks. Try adding or listing tasks."
 
-            # Handle intents
             if intent == "add_task":
                 tasks.insert_one({
                     "user": user_email,
@@ -569,23 +572,20 @@ def zenbot():
                 )
                 reply = "🗑️ Task deleted!" if result.deleted_count else "⚠️ Task not found."
 
-            # Save chat history
             chat_history.insert_one({
                 "user": user_email,
                 "message": message,
                 "reply": reply,
                 "timestamp": datetime.utcnow()
             })
-
             return jsonify({"reply": reply})
-
         except Exception as e:
             print("ZenBot error:", e)
             return jsonify({"reply": f"⚠️ Server error: {e}"}), 500
 
-    # GET request: show chat history
     history = list(chat_history.find({"user": user_email}).sort("timestamp", 1))
     return render_template("zenbot.html", history=history, user=user)
+
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
@@ -595,6 +595,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
+
 
 
 
