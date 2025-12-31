@@ -6,6 +6,7 @@ from bson import ObjectId
 from werkzeug.utils import secure_filename
 import os
 import requests
+import json
 
 from dotenv import load_dotenv
 
@@ -469,11 +470,14 @@ def complete_task(id):
     )
     return ("", 204)
 
-# Gemini API key from environment variable
+# Gemini API key
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 def call_gemini_api(message):
-    prompt = f"""
+    if not GEMINI_API_KEY:
+        return json.dumps({"intent":"unknown"})
+    try:
+        prompt = f"""
 Return ONLY valid JSON.
 
 Intents:
@@ -490,75 +494,91 @@ Format:
 
 User message: "{message}"
 """
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+        payload = {"contents":[{"role":"user","parts":[{"text":prompt}]}]}
+        r = requests.post(url, json=payload, timeout=15)
+        r.raise_for_status()
+        text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
+        return text
+    except Exception as e:
+        print("❌ Gemini API error:", e)
+        return json.dumps({"intent":"unknown"})
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-    payload = {"contents":[{"role":"user","parts":[{"text":prompt}]}]}
-    r = requests.post(url, json=payload)
-    return r.json()["candidates"][0]["content"]["parts"][0]["text"]
-
-# ---------------- ZENBOT (FULL AI) ----------------
 @app.route("/zenbot", methods=["GET", "POST"])
 def zenbot():
     if "user" not in session:
         return redirect("/login")
 
-    user = users.find_one({"email": session["user"]})
+    user_email = session["user"]
+    user = users.find_one({"email": user_email})
 
     if request.method == "POST":
-        message = request.json.get("message")
-        ai_raw = call_gemini_api(message)
-
         try:
-            ai = json.loads(ai_raw)
-        except:
-            return jsonify({"reply": "⚠️ I couldn't understand that."})
+            data = request.get_json(force=True)
+            message = data.get("message")
+            if not message:
+                return jsonify({"reply": "⚠️ Message required"}), 400
 
-        intent = ai.get("intent")
+            ai_raw = call_gemini_api(message)
+            try:
+                ai = json.loads(ai_raw)
+            except:
+                ai = {"intent": "unknown"}
 
-        if intent == "add_task":
-            tasks.insert_one({
-                "user": session["user"],
-                "title": ai["title"],
-                "description": ai.get("description",""),
-                "priority": ai.get("priority","Medium"),
-                "due_date": ai.get("due_date"),
-                "status": "Pending",
-                "created": datetime.utcnow()
-            })
-            reply = f"✅ Task **{ai['title']}** added!"
-
-        elif intent == "list_tasks":
-            task_list = list(tasks.find({"user": session["user"]}))
-            reply = "📝 Your Tasks:\n" + "\n".join(
-                f"- {t['title']} ({t['status']})" for t in task_list
-            ) if task_list else "📭 No tasks found."
-
-        elif intent == "complete_task":
-            result = tasks.update_one(
-                {"user": session["user"], "title": ai["title"]},
-                {"$set": {"status": "Completed"}}
-            )
-            reply = "✅ Task completed!" if result.modified_count else "⚠️ Task not found."
-
-        elif intent == "delete_task":
-            result = tasks.delete_one(
-                {"user": session["user"], "title": ai["title"]}
-            )
-            reply = "🗑️ Task deleted!" if result.deleted_count else "⚠️ Task not found."
-
-        else:
+            intent = ai.get("intent", "unknown")
             reply = "🤖 I can help with tasks. Try adding or listing tasks."
 
-        chat_history.insert_one({
-            "user": session["user"],
-            "message": message,
-            "reply": reply,
-            "timestamp": datetime.utcnow()
-        })
+            if intent == "add_task":
+                title = ai.get("title", "").strip()
+                if title:
+                    tasks.insert_one({
+                        "user": user_email,
+                        "title": title,
+                        "description": ai.get("description",""),
+                        "priority": ai.get("priority","Medium"),
+                        "due_date": ai.get("due_date"),
+                        "status": "Pending",
+                        "created": datetime.utcnow()
+                    })
+                    reply = f"✅ Task **{title}** added!"
+                else:
+                    reply = "⚠️ Task title missing."
 
-        return jsonify({"reply": reply})
+            elif intent == "list_tasks":
+                task_list = list(tasks.find({"user": user_email}))
+                reply = "📝 Your Tasks:\n" + "\n".join(
+                    f"- {t['title']} ({t['status']})" for t in task_list
+                ) if task_list else "📭 No tasks found."
 
-    history = list(chat_history.find({"user": session["user"]}).sort("timestamp", 1))
+            elif intent == "complete_task":
+                title = ai.get("title","").strip()
+                result = tasks.update_one(
+                    {"user": user_email, "title": title},
+                    {"$set": {"status": "Completed"}}
+                )
+                reply = "✅ Task completed!" if result.modified_count else "⚠️ Task not found."
+
+            elif intent == "delete_task":
+                title = ai.get("title","").strip()
+                result = tasks.delete_one({"user": user_email, "title": title})
+                reply = "🗑️ Task deleted!" if result.deleted_count else "⚠️ Task not found."
+
+            # Save chat history
+            chat_history.insert_one({
+                "user": user_email,
+                "message": message,
+                "reply": reply,
+                "timestamp": datetime.utcnow()
+            })
+
+            return jsonify({"reply": reply})
+
+        except Exception as e:
+            print("❌ ZenBot POST error:", e)
+            return jsonify({"reply": f"⚠️ Server error: {e}"}), 500
+
+    # GET request → render page
+    history = list(chat_history.find({"user": user_email}).sort("timestamp", 1))
     return render_template("zenbot.html", history=history, user=user)
 
 
@@ -570,6 +590,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
+
 
 
 
