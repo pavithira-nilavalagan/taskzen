@@ -45,7 +45,11 @@ tasks_collection = db.tasks_collection
 UPLOAD_FOLDER = "static/uploads"
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
+# 🔥 THIS LINE FIXES EVERYTHING
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -169,8 +173,11 @@ def dashboard():
 # ---------------- PROFILE ----------------
 @app.route("/profile", methods=["GET", "POST"])
 def profile():
-    user_email = session.get("user")
-    profile = users.find_one({"email": user_email})  # Replace with your Mongo query
+    if "user" not in session:
+        return redirect("/login")
+
+    user_email = session["user"]
+    profile = users.find_one({"email": user_email})
 
     if request.method == "POST":
         update_data = {
@@ -184,20 +191,28 @@ def profile():
             "bio": request.form.get("bio"),
         }
 
-        # Handle file upload
+        # ✅ Handle image upload safely
         file = request.files.get("image")
-        if file and allowed_file(file.filename):
+    
+        if file and file.filename and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            update_data["image_url"] = "/" + filepath.replace("\\", "/")
+            filename = f"{ObjectId()}_{filename}"
+    
+        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        file.save(filepath)
+    
+        update_data["image_url"] = f"/static/uploads/{filename}"
 
-        # Update database
-        users.update_one({"email": user_email}, {"$set": update_data}, upsert=True)
+
+        users.update_one(
+            {"email": user_email},
+            {"$set": update_data}
+        )
 
         return redirect("/profile")
 
     return render_template("profile.html", profile=profile)
+
 
 
 
@@ -547,4 +562,5 @@ def logout():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
+
 
