@@ -5,14 +5,12 @@
   <title>ZenBot | TaskZen</title>
   <link rel="icon" type="image/x-icon" href="../static/image/taskzen_logo.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
 <body class="bg-gray-100 text-gray-800">
 
-<!-- ================= MOBILE TOP NAV ================= -->
+<!-- ================= MOBILE TOP NAVBAR ================= -->
 <header class="md:hidden flex items-center justify-between bg-indigo-600 text-white px-4 py-3">
   <h1 class="text-lg font-bold">TaskZen</h1>
   <button onclick="toggleSidebar()" class="text-2xl">☰</button>
@@ -46,11 +44,10 @@
 </aside>
 
 <!-- Overlay -->
-<div id="overlay"
-     onclick="toggleSidebar()"
+<div id="overlay" onclick="toggleSidebar()"
      class="fixed inset-0 bg-black/40 hidden z-40 md:hidden"></div>
 
-<!-- ================= MAIN ================= -->
+<!-- ================= MAIN CONTENT ================= -->
 <main class="md:ml-64 min-h-screen p-4 flex flex-col">
 
   <!-- Page Header -->
@@ -62,9 +59,7 @@
   </div>
 
   <!-- Chat Area -->
-  <div id="chat"
-       class="flex-1 overflow-y-auto p-4 bg-white rounded-xl shadow mb-4 space-y-4 flex flex-col">
-
+  <div id="chat" class="flex-1 overflow-y-auto p-4 bg-white rounded-xl shadow mb-4 space-y-4 flex flex-col">
     {% for msg in history %}
       <div class="flex justify-end">
         <div class="max-w-xs md:max-w-md bg-indigo-600 text-white px-4 py-2
@@ -72,7 +67,6 @@
           {{ msg.message }}
         </div>
       </div>
-
       <div class="flex justify-start">
         <div class="max-w-xs md:max-w-md bg-gray-200 text-gray-800 px-4 py-2
                     rounded-2xl rounded-bl-none break-words">
@@ -84,12 +78,10 @@
 
   <!-- Input Area -->
   <div class="flex gap-2">
-    <input id="message"
-           type="text"
+    <input id="message" type="text"
            placeholder="Type a message or add a task..."
            class="flex-1 border rounded-full px-4 py-2
                   focus:outline-none focus:ring-2 focus:ring-indigo-500">
-
     <button id="send"
             class="bg-indigo-600 text-white px-6 py-2 rounded-full
                    hover:bg-indigo-700 transition">
@@ -131,6 +123,7 @@
       </div>`;
     chat.appendChild(botDiv);
 
+    // Scroll to bottom
     chat.scrollTop = chat.scrollHeight;
   }
 
@@ -138,20 +131,24 @@
     const message = messageInput.value.trim();
     if (!message) return;
 
-    const response = await fetch("/zenbot", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message })
-    });
+    try {
+      const response = await fetch("/zenbot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
 
-    const data = await response.json();
-    appendMessage(message, data.reply || "⚠️ Error");
+      const data = await response.json();
+      appendMessage(message, data.reply || "⚠️ Error");
+
+    } catch (err) {
+      appendMessage(message, `⚠️ Server error: ${err}`);
+    }
 
     messageInput.value = "";
   }
 
   sendButton.addEventListener("click", sendMessage);
-
   messageInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") sendMessage();
   });
