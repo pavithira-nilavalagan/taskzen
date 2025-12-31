@@ -56,32 +56,83 @@ def index():
     return render_template("index.html")
 
 # ---------------- REGISTER ----------------
-@app.route("/register", methods=["GET","POST"])
+@app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        users.insert_one({
-            "name": request.form["name"],
-            "email": request.form["email"],
-            "password": generate_password_hash(request.form["password"]),
-            "profile": {},
-            "created": datetime.now()
-        })
-        return redirect("/login")
+        try:
+            email = request.form["email"]
+
+            # Check duplicate
+            if users.find_one({"email": email}):
+                return render_template("register.html", error="Email already exists")
+
+            users.insert_one({
+                "name": request.form["name"],
+                "email": email,
+                "password": generate_password_hash(request.form["password"]),
+                "settings": {},
+                "created": datetime.utcnow()
+            })
+
+            print("✅ User inserted into MongoDB Atlas")
+
+            return redirect("/login")
+
+        except Exception as e:
+            print("❌ Registration error:", e)
+            return render_template("register.html", error="Registration failed")
+
     return render_template("register.html")
 
+
 # ---------------- LOGIN ----------------
-@app.route("/login", methods=["GET","POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        user = users.find_one({"email": request.form["email"]})
+        try:
+            email = request.form.get("email")
+            password = request.form.get("password")
 
-        if user and check_password_hash(user["password"], request.form["password"]):
-            session["user_id"] = str(user["_id"])   # ✅ ADD THIS
+            if not email or not password:
+                return render_template(
+                    "login.html",
+                    error="Email and password are required"
+                )
+
+            # 🔍 Find user in MongoDB Atlas
+            user = users.find_one({"email": email})
+
+            if not user:
+                return render_template(
+                    "login.html",
+                    error="User does not exist"
+                )
+
+            # 🔐 Check password hash
+            if not check_password_hash(user["password"], password):
+                return render_template(
+                    "login.html",
+                    error="Invalid password"
+                )
+
+            # ✅ Login success
+            session.clear()
+            session["user_id"] = str(user["_id"])
             session["user"] = user["email"]
+
+            print("✅ User logged in:", email)
 
             return redirect("/dashboard")
 
+        except Exception as e:
+            print("❌ Login error:", e)
+            return render_template(
+                "login.html",
+                error="Login failed, try again"
+            )
+
     return render_template("login.html")
+
 
 
 # ---------------- DASHBOARD ----------------
@@ -496,3 +547,4 @@ def logout():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
+
