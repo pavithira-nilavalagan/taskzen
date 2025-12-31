@@ -198,18 +198,18 @@ def profile():
             "bio": request.form.get("bio"),
         }
 
-        # ✅ Handle image upload safely
+        # Only update image if a new file is uploaded
         file = request.files.get("image")
-    
         if file and file.filename and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             filename = f"{ObjectId()}_{filename}"
-    
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(filepath)
-    
-        update_data["image_url"] = f"/static/uploads/{filename}"
-
+            filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+            file.save(filepath)
+            update_data["image_url"] = f"/static/uploads/{filename}"
+        else:
+            # Keep existing image if no new file
+            if "image_url" in profile:
+                update_data["image_url"] = profile["image_url"]
 
         users.update_one(
             {"email": user_email},
@@ -219,6 +219,7 @@ def profile():
         return redirect("/profile")
 
     return render_template("profile.html", profile=profile)
+
 
 
 
@@ -590,6 +591,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
+
 
 
 
