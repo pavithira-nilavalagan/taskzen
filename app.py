@@ -236,7 +236,8 @@ def add_task():
             "priority": request.form["priority"],
             "due_date": request.form["due_date"],
             "status": "Pending",
-            "created": datetime.now().strftime("%Y-%m-%d %H:%M")
+            "created": datetime.utcnow()
+
         })
         return redirect("/tasks")
 
@@ -568,6 +569,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
+
 
 
 
