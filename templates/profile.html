@@ -18,7 +18,7 @@
   <button onclick="toggleSidebar()" class="text-2xl">☰</button>
 </div>
 
-<!-- ================= SIDEBAR (UNCHANGED) ================= -->
+<!-- ================= SIDEBAR ================= -->
 <div id="sidebar"
      class="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-indigo-600 to-purple-600
             text-white p-6 transform -translate-x-full md:translate-x-0
@@ -35,9 +35,8 @@
     <a href="/pending" class="hover:bg-white/20 px-4 py-2 rounded-lg">Pending</a>
     <a href="/priority" class="hover:bg-white/20 px-4 py-2 rounded-lg">Priority</a>
     <a href="/zenbot" class="hover:bg-white/20 px-4 py-2 rounded-lg">Zen Bot</a>
-    <a href="/calendar" class="hover:bg-white/20 px-4 py-2 rounded-lg">Calender</a>
-    <a href="/settings" class="hover:bg-white/20 px-4 py-2 rounded-lg">Setting</a>
-
+    <a href="/calendar" class="hover:bg-white/20 px-4 py-2 rounded-lg">Calendar</a>
+    <a href="/settings" class="hover:bg-white/20 px-4 py-2 rounded-lg">Settings</a>
     <a href="/logout"
        class="mt-6 bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg text-center">
       Logout
@@ -76,11 +75,9 @@
              class="w-32 h-32 sm:w-36 sm:h-36 rounded-full object-cover
                     ring-4 ring-indigo-500 shadow-lg">
       {% else %}
-        <div class="w-32 h-32 sm:w-36 sm:h-36 rounded-full bg-indigo-100
-                    text-indigo-600 flex items-center justify-center
-                    font-semibold shadow-inner">
-          No Image
-        </div>
+        <img src="/static/image/default_avatar.png"
+             class="w-32 h-32 sm:w-36 sm:h-36 rounded-full object-cover
+                    ring-4 ring-indigo-500 shadow-lg">
       {% endif %}
 
       <label class="cursor-pointer text-sm bg-indigo-600 text-white
