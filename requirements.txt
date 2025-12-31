@@ -4,7 +4,9 @@ werkzeug
 requests
 python-dotenv
 dnspython
+bson
 gunicorn
+
 
 
 
