@@ -527,28 +527,45 @@ def zenbot():
         return redirect("/login")
     user_email = session["user"]
     user = users.find_one({"email": user_email})
+
     if request.method == "POST":
         try:
             data = request.get_json()
             message = data.get("message", "").strip()
             if not message:
                 return jsonify({"reply": "⚠️ Message cannot be empty"})
-            ai_raw = call_gemini_api(message)
-            ai = extract_json(ai_raw)
-            intent = ai.get("intent", "unknown")
+
+            # ---------------- JS-style Intent Detection ----------------
+            message_lower = message.lower()
+            intent = "unknown"
+            task_title = None
+
+            if re.search(r"\badd\b|\bcreate\b", message_lower):
+                intent = "add_task"
+                task_title = re.sub(r"(add|create|to-do|todo|list)", "", message_lower).strip()
+            elif re.search(r"\blist\b|\bshow\b", message_lower):
+                intent = "list_tasks"
+            elif re.search(r"\bcomplete\b|\bdone\b", message_lower):
+                intent = "complete_task"
+                task_title = re.sub(r"(complete|finished|done)", "", message_lower).strip()
+            elif re.search(r"\bremove\b|\bdelete\b", message_lower):
+                intent = "delete_task"
+                task_title = re.sub(r"(remove|delete)", "", message_lower).strip()
+
             reply = "🤖 I can help with tasks. Try adding or listing tasks."
 
-            if intent == "add_task":
+            # ---------------- Execute Intent ----------------
+            if intent == "add_task" and task_title:
                 tasks.insert_one({
                     "user": user_email,
-                    "title": ai.get("title", "Untitled Task"),
-                    "description": ai.get("description", ""),
-                    "priority": ai.get("priority", "Medium"),
-                    "due_date": ai.get("due_date", ""),
+                    "title": task_title.title(),
+                    "description": "",
+                    "priority": "Medium",
+                    "due_date": "",
                     "status": "Pending",
                     "created": datetime.utcnow()
                 })
-                reply = f"✅ Task '{ai.get('title','Untitled Task')}' added!"
+                reply = f"✅ Task '{task_title.title()}' added!"
 
             elif intent == "list_tasks":
                 task_list = list(tasks.find({"user": user_email}))
@@ -559,33 +576,36 @@ def zenbot():
                 else:
                     reply = "📭 No tasks found."
 
-            elif intent == "complete_task":
+            elif intent == "complete_task" and task_title:
                 result = tasks.update_one(
-                    {"user": user_email, "title": ai.get("title")},
+                    {"user": user_email, "title": {"$regex": f"^{re.escape(task_title)}$", "$options":"i"}},
                     {"$set": {"status": "Completed"}}
                 )
                 reply = "✅ Task completed!" if result.modified_count else "⚠️ Task not found."
 
-            elif intent == "delete_task":
+            elif intent == "delete_task" and task_title:
                 result = tasks.delete_one(
-                    {"user": user_email, "title": ai.get("title")}
+                    {"user": user_email, "title": {"$regex": f"^{re.escape(task_title)}$", "$options":"i"}}
                 )
                 reply = "🗑️ Task deleted!" if result.deleted_count else "⚠️ Task not found."
 
+            # ---------------- Save Chat History ----------------
             chat_history.insert_one({
                 "user": user_email,
                 "message": message,
                 "reply": reply,
                 "timestamp": datetime.utcnow()
             })
+
             return jsonify({"reply": reply})
+
         except Exception as e:
             print("ZenBot error:", e)
             return jsonify({"reply": f"⚠️ Server error: {e}"}), 500
 
+    # ---------------- GET request: render page ----------------
     history = list(chat_history.find({"user": user_email}).sort("timestamp", 1))
     return render_template("zenbot.html", history=history, user=user)
-
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
@@ -595,6 +615,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
+
 
 
 
