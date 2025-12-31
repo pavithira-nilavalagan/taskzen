@@ -63,14 +63,14 @@
       <div class="flex justify-end">
         <div class="max-w-xs md:max-w-md bg-indigo-600 text-white px-4 py-2
                     rounded-2xl rounded-br-none break-words">
-          {{ msg.message }}
+          {{ msg.message | e }}
         </div>
       </div>
       <!-- Bot reply -->
       <div class="flex justify-start">
         <div class="max-w-xs md:max-w-md bg-gray-200 text-gray-800 px-4 py-2
                     rounded-2xl rounded-bl-none break-words">
-          {{ msg.reply }}
+          {{ msg.reply | e }}
         </div>
       </div>
     {% endfor %}
@@ -95,7 +95,15 @@
     document.getElementById("overlay").classList.toggle("hidden");
   }
 
-  // Chat functionality
+  // Escape HTML to prevent injection
+  function escapeHTML(str) {
+    return str.replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
+  }
+
   const chat = document.getElementById("chat");
   const messageInput = document.getElementById("message");
   const sendButton = document.getElementById("send");
@@ -107,27 +115,40 @@
     userDiv.innerHTML = `
       <div class="max-w-xs md:max-w-md bg-indigo-600 text-white px-4 py-2
                   rounded-2xl rounded-br-none break-words">
-        ${userMsg}
+        ${escapeHTML(userMsg)}
       </div>`;
     chat.appendChild(userDiv);
 
-    // Bot reply
+    // Bot message
     const botDiv = document.createElement("div");
     botDiv.className = "flex justify-start";
     botDiv.innerHTML = `
       <div class="max-w-xs md:max-w-md bg-gray-200 text-gray-800 px-4 py-2
                   rounded-2xl rounded-bl-none break-words">
-        ${botReply}
+        ${escapeHTML(botReply)}
       </div>`;
     chat.appendChild(botDiv);
 
-    // Scroll to bottom
     chat.scrollTop = chat.scrollHeight;
   }
 
   async function sendMessage() {
     const message = messageInput.value.trim();
     if (!message) return;
+
+    // Show typing indicator
+    const typingDiv = document.createElement("div");
+    typingDiv.className = "flex justify-start";
+    typingDiv.innerHTML = `
+      <div class="max-w-xs md:max-w-md bg-gray-200 text-gray-800 px-4 py-2
+                  rounded-2xl rounded-bl-none break-words">
+        🤖 Typing...
+      </div>`;
+    chat.appendChild(typingDiv);
+    chat.scrollTop = chat.scrollHeight;
+
+    messageInput.value = "";
+    messageInput.focus();
 
     try {
       const response = await fetch("/zenbot", {
@@ -136,19 +157,17 @@
         body: JSON.stringify({ message })
       });
 
-      // Parse JSON response
       const data = await response.json();
-      appendMessage(message, data.reply || "⚠️ Error");
+      // Replace typing indicator with actual reply
+      typingDiv.querySelector("div").textContent = data.reply || "⚠️ Error";
 
-      messageInput.value = "";
-      messageInput.focus();
+      appendMessage(message, data.reply || "⚠️ Error");
     } catch (err) {
-      appendMessage(message, "⚠️ Server error or invalid response.");
+      typingDiv.querySelector("div").textContent = "⚠️ Server error or invalid response.";
       console.error(err);
     }
   }
 
-  // Event listeners
   sendButton.addEventListener("click", sendMessage);
   messageInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") sendMessage();
