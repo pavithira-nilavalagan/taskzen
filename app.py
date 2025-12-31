@@ -473,53 +473,6 @@ def complete_task(id):
     return ("", 204)
 
 
-
-# ---------------- GEMINI API ----------------
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-
-def call_gemini_api(message):
-    prompt = f"""
-You are an assistant for a task management system. Respond ONLY in JSON.
-
-Intents:
-- add_task
-- list_tasks
-- complete_task
-- delete_task
-- unknown
-
-JSON Format:
-{{
-  "intent": "add_task|list_tasks|complete_task|delete_task|unknown",
-  "title": "Task title",
-  "description": "Task description",
-  "priority": "Low|Medium|High",
-  "due_date": "YYYY-MM-DD"
-}}
-
-User message: "{message}"
-"""
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-        payload = {"contents":[{"role":"user","parts":[{"text":prompt}]}]}
-        response = requests.post(url, json=payload)
-        response.raise_for_status()
-        ai_text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
-        return ai_text
-    except Exception as e:
-        print("Gemini API error:", e)
-        return '{"intent": "unknown"}'
-
-def extract_json(text):
-    """Extract JSON from Gemini output safely."""
-    try:
-        match = re.search(r"\{.*\}", text, re.DOTALL)
-        if match:
-            return json.loads(match.group())
-    except Exception as e:
-        print("JSON extraction error:", e)
-    return {"intent": "unknown"}
-
 # ---------------- ZENBOT ----------------
 @app.route("/zenbot", methods=["GET", "POST"])
 def zenbot():
@@ -615,6 +568,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
+
 
 
 
