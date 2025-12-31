@@ -473,93 +473,94 @@ def complete_task(id):
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 def call_gemini_api(message):
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-        headers = {
-            "Content-Type": "application/json",
-            "x-goog-api-key": GEMINI_API_KEY
-        }
+    prompt = f"""
+Return ONLY valid JSON.
 
-        payload = {
-            "contents": [
-                {
-                    "role": "user",
-                    "parts": [
-                        {"text": message}
-                    ]
-                }
-            ]
-        }
+Intents:
+add_task, list_tasks, complete_task, delete_task, unknown
 
-        response = requests.post(url, json=payload, headers=headers)
+Format:
+{{
+ "intent":"",
+ "title":"",
+ "description":"",
+ "priority":"Low|Medium|High",
+ "due_date":"YYYY-MM-DD"
+}}
 
-        if response.status_code == 200:
-            data = response.json()
-            # The text is usually nested inside content.parts
-            return data["candidates"][0]["content"]["parts"][0]["text"]
-        else:
-            print("Gemini API Response:", response.text)
-            return f"⚠️ Gemini API Error: {response.status_code} - {response.text}"
+User message: "{message}"
+"""
 
-    except Exception as e:
-        return f"⚠️ Exception calling Gemini API: {e}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+    payload = {"contents":[{"role":"user","parts":[{"text":prompt}]}]}
+    r = requests.post(url, json=payload)
+    return r.json()["candidates"][0]["content"]["parts"][0]["text"]
 
-
-
-# ---------------- ZENBOT ROUTE ----------------
+# ---------------- ZENBOT (FULL AI) ----------------
 @app.route("/zenbot", methods=["GET", "POST"])
 def zenbot():
     if "user" not in session:
         return redirect("/login")
 
-    user_email = session["user"]
-    user = users.find_one({"email": user_email})
+    user = users.find_one({"email": session["user"]})
 
     if request.method == "POST":
+        message = request.json.get("message")
+        ai_raw = call_gemini_api(message)
+
         try:
-            data = request.json
-            message = data.get("message")
-            if not message:
-                return jsonify({"error": "Message required"}), 400
+            ai = json.loads(ai_raw)
+        except:
+            return jsonify({"reply": "⚠️ I couldn't understand that."})
 
-            # Get AI reply
-            reply = call_gemini_api(message)
+        intent = ai.get("intent")
 
-            # Save chat history
-            chat_history.insert_one({
-                "user": user_email,
-                "message": message,
-                "reply": reply,
-                "timestamp": datetime.now()
+        if intent == "add_task":
+            tasks.insert_one({
+                "user": session["user"],
+                "title": ai["title"],
+                "description": ai.get("description",""),
+                "priority": ai.get("priority","Medium"),
+                "due_date": ai.get("due_date"),
+                "status": "Pending",
+                "created": datetime.utcnow()
             })
+            reply = f"✅ Task **{ai['title']}** added!"
 
-            # Auto-create task if message starts with "Add task:"
-            if message.lower().startswith("add task:"):
-                try:
-                    _, task_data = message.split("add task:", 1)
-                    title, description, priority, due_date = [x.strip() for x in task_data.split(";")]
-                    tasks.insert_one({
-                        "user": user_email,
-                        "title": title,
-                        "description": description,
-                        "priority": priority.capitalize(),
-                        "due_date": due_date,
-                        "status": "Pending",
-                        "created": datetime.now().strftime("%Y-%m-%d %H:%M")
-                    })
-                    reply += f"\n✅ Task '{title}' created successfully!"
-                except Exception as e:
-                    reply += f"\n⚠️ Could not create task: {e}"
+        elif intent == "list_tasks":
+            task_list = list(tasks.find({"user": session["user"]}))
+            reply = "📝 Your Tasks:\n" + "\n".join(
+                f"- {t['title']} ({t['status']})" for t in task_list
+            ) if task_list else "📭 No tasks found."
 
-            return jsonify({"reply": reply})
+        elif intent == "complete_task":
+            result = tasks.update_one(
+                {"user": session["user"], "title": ai["title"]},
+                {"$set": {"status": "Completed"}}
+            )
+            reply = "✅ Task completed!" if result.modified_count else "⚠️ Task not found."
 
-        except Exception as e:
-            return jsonify({"error": f"Server error: {e}"}), 500
+        elif intent == "delete_task":
+            result = tasks.delete_one(
+                {"user": session["user"], "title": ai["title"]}
+            )
+            reply = "🗑️ Task deleted!" if result.deleted_count else "⚠️ Task not found."
 
-    # ---------------- GET REQUEST ----------------
-    history = list(chat_history.find({"user": user_email}).sort("timestamp", -1).limit(20))
-    history.reverse()  # oldest first
+        else:
+            reply = "🤖 I can help with tasks. Try adding or listing tasks."
+
+        chat_history.insert_one({
+            "user": session["user"],
+            "message": message,
+            "reply": reply,
+            "timestamp": datetime.utcnow()
+        })
+
+        return jsonify({"reply": reply})
+
+    history = list(chat_history.find({"user": session["user"]}).sort("timestamp", 1))
     return render_template("zenbot.html", history=history, user=user)
+
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
@@ -569,6 +570,7 @@ def logout():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",debug=True)
+
 
 
 
